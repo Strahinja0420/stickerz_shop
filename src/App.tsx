@@ -45,7 +45,7 @@ const AppContent: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F5F5F2] text-[#151515] flex flex-col pt-[77px] selection:bg-[#b30400] selection:text-white">
+    <div className="min-h-screen bg-[#F5F5F2] text-[#151515] flex flex-col pt-[108px] selection:bg-[#b30400] selection:text-white">
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 bg-[#151515] text-white border-2 border-[#b30400] px-4 py-3 font-mono-tech text-xs font-bold uppercase brutalist-shadow flex items-center gap-2.5 transition-all">

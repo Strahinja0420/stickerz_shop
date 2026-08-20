@@ -1,18 +1,150 @@
 import React, { useState } from 'react';
 import { useCart } from '../context/CartContext';
 import { PRODUCTS } from '../data/products';
-import { ArrowRight, Sparkles, CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, ArrowRight } from 'lucide-react';
 
+/* ─── Tiny helper: money ─── */
+const money = (n: number) =>
+  n.toLocaleString('sr-RS') + ' RSD';
+
+/* ─── Badge chip ─── */
+const Badge: React.FC<{ label: string; variant?: 'red' | 'dark' | 'grey' }> = ({
+  label,
+  variant = 'dark',
+}) => {
+  const bg = variant === 'red' ? '#E10600' : variant === 'grey' ? '#555' : '#090909';
+  return (
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        minHeight: 25,
+        padding: '0 9px',
+        fontSize: 9,
+        fontWeight: 900,
+        letterSpacing: '0.12em',
+        textTransform: 'uppercase',
+        color: '#fff',
+        background: bg,
+      }}
+    >
+      {label}
+    </span>
+  );
+};
+
+/* ─── Product card ─── */
+const ProductCard: React.FC<{ product: (typeof PRODUCTS)[number] }> = ({ product }) => {
+  const { viewProduct, addToCart } = useCart();
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <article
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        background: '#fff',
+        border: '1px solid #D4D4D0',
+        position: 'relative',
+        cursor: 'pointer',
+        transform: hovered ? 'translateY(-3px)' : 'translateY(0)',
+        boxShadow: hovered ? '0 14px 30px rgba(0,0,0,.07)' : 'none',
+        transition: 'transform 140ms ease, box-shadow 140ms ease',
+      }}
+    >
+      {/* Image */}
+      <div
+        onClick={() => viewProduct(product)}
+        style={{
+          aspectRatio: '1',
+          background: '#E7E7E3',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          position: 'relative',
+          overflow: 'hidden',
+        }}
+      >
+        <img
+          src={product.images[0]}
+          alt={product.name}
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            transform: hovered ? 'scale(1.04)' : 'scale(1)',
+            transition: 'transform 360ms cubic-bezier(.2,.8,.2,1)',
+          }}
+        />
+
+        {/* Badges */}
+        <div style={{ position: 'absolute', top: 10, left: 10, display: 'flex', gap: 6, zIndex: 2 }}>
+          {product.badge === '-33%' && <Badge label="Sale" variant="red" />}
+          {product.badge === 'RASPRODATO' && <Badge label="Rasprodato" variant="grey" />}
+          {product.badge === 'LIMITED' && <Badge label="Limited" variant="dark" />}
+          {!product.badge && !product.originalPrice && <Badge label="Novo" variant="dark" />}
+        </div>
+
+        {/* Quick add on hover */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            addToCart(product, 1, product.sizes?.[0] || 'M');
+          }}
+          style={{
+            position: 'absolute',
+            left: 10, right: 10, bottom: 10,
+            border: 0,
+            background: '#000',
+            color: '#fff',
+            minHeight: 40,
+            cursor: 'pointer',
+            fontSize: 9,
+            letterSpacing: '0.11em',
+            textTransform: 'uppercase',
+            fontWeight: 900,
+            transform: hovered ? 'translateY(0)' : 'translateY(55px)',
+            transition: 'transform 220ms ease',
+          }}
+        >
+          Dodaj u korpu
+        </button>
+      </div>
+
+      {/* Info */}
+      <div style={{ padding: 15 }}>
+        <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#E10600' }}>
+          {product.category}
+        </div>
+        <div style={{ fontSize: 14, fontWeight: 800, margin: '6px 0 8px', minHeight: 42, lineHeight: 1.3 }}>
+          {product.name}
+        </div>
+        <div style={{ fontWeight: 900 }}>
+          {product.originalPrice && (
+            <span style={{ fontSize: 12, color: '#6F6F6A', textDecoration: 'line-through', marginRight: 7, fontWeight: 500 }}>
+              {money(product.originalPrice)}
+            </span>
+          )}
+          {money(product.price)}
+        </div>
+      </div>
+    </article>
+  );
+};
+
+/* ═══════════════════════════════════════════
+   HOMEPAGE
+═══════════════════════════════════════════ */
 export const HomePage: React.FC = () => {
-  const { setActivePage, viewProduct, addToCart } = useCart();
+  const { setActivePage, viewProduct } = useCart();
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [isSubscribed, setIsSubscribed] = useState(false);
 
-  const bestSellers = PRODUCTS.slice(0, 4);
+  const featured = PRODUCTS.filter((p) => !p.isSoldOut).slice(0, 4);
 
   const handleNewsletterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newsletterEmail.trim()) {
+    if (newsletterEmail.includes('@')) {
       setIsSubscribed(true);
       setNewsletterEmail('');
       setTimeout(() => setIsSubscribed(false), 5000);
@@ -21,386 +153,709 @@ export const HomePage: React.FC = () => {
 
   return (
     <div className="w-full">
-      {/* 1. Hero Section */}
-      <section className="grid grid-cols-1 md:grid-cols-12 min-h-[75vh] border-b-2 border-[#D4D4D0] px-4 md:px-12 py-8 md:py-16 gap-6 md:gap-8 bg-[#FFFFFF]">
-        <div className="md:col-span-7 flex flex-col justify-center gap-6 z-10 pr-0 md:pr-8">
-          <h1 className="font-anton text-5xl sm:text-6xl md:text-7xl lg:text-8xl uppercase leading-[0.9] tracking-tighter text-[#151515]">
-            STIKERI, MAJICE <br className="hidden xl:block" />
-            I BRANDING <br className="hidden xl:block" />
-            <span className="text-[#b30400]">ZA ONE KOJI OSTAVLJAJU TRAG.</span>
+
+      {/* ══ 1. HERO ══════════════════════════════════════════ */}
+      <section
+        style={{
+          minHeight: 720,
+          background: '#fff',
+          display: 'grid',
+          gridTemplateColumns: '1.04fr 0.96fr',
+          overflow: 'hidden',
+        }}
+        className="hero-split"
+      >
+        {/* Left copy */}
+        <div
+          style={{
+            padding: 'clamp(60px, 8vh, 86px) 40px clamp(60px, 8vh, 86px) max(32px, calc((100vw - 1360px)/2 + 32px))',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+          }}
+        >
+          <div className="eyebrow">Stick / Print / Wear / Repeat</div>
+          <h1
+            style={{
+              fontFamily: "'Anton', sans-serif",
+              textTransform: 'uppercase',
+              fontSize: 'clamp(66px, 7.4vw, 112px)',
+              lineHeight: 0.88,
+              maxWidth: 800,
+              marginTop: 18,
+            }}
+          >
+            Stikeri, majice i branding{' '}
+            <span style={{ color: '#E10600' }}>za one koji ostavljaju trag.</span>
           </h1>
-          
-          <p className="text-sm md:text-base text-[#6F6F6A] max-w-xl leading-relaxed">
-            Sirova ulična estetika, teški pamuk i vodootporni vinil. Autentični komadi i custom print rešenja iz Beograda.
+
+          <p
+            style={{
+              maxWidth: 540,
+              color: '#4A4A47',
+              fontSize: 17,
+              lineHeight: 1.7,
+              margin: '24px 0 30px',
+            }}
+          >
+            Originalni sticker packovi, streetwear komadi i custom print za ljude, ekipe i firme koje ne žele generičan izgled.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-max mt-2">
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <button
               onClick={() => setActivePage('shop')}
-              className="bg-[#b30400] text-white font-bold text-xs uppercase px-8 py-4 border-2 border-[#b30400] hover:bg-[#151515] hover:border-[#151515] transition-colors duration-150 h-[52px] flex items-center justify-center cursor-pointer tracking-wider"
+              style={{
+                border: 0, borderRadius: 0, minHeight: 48, padding: '0 24px',
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+                cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.09em',
+                fontSize: 11, fontWeight: 900,
+                background: '#E10600', color: '#fff',
+                transition: 'background 140ms ease, transform 140ms ease',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = '#090909'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = '#E10600'; e.currentTarget.style.transform = 'translateY(0)'; }}
             >
-              KUPI ODMAH
+              Kupi odmah →
             </button>
             <button
               onClick={() => setActivePage('b2b')}
-              className="bg-transparent text-[#151515] font-bold text-xs uppercase px-8 py-4 border-2 border-[#151515] hover:bg-[#151515] hover:text-white transition-colors duration-150 h-[52px] flex items-center justify-center cursor-pointer tracking-wider"
+              style={{
+                border: '1px solid #090909', borderRadius: 0, minHeight: 48, padding: '0 24px',
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+                cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.09em',
+                fontSize: 11, fontWeight: 900,
+                background: 'transparent', color: '#090909',
+                transition: 'background 140ms ease, color 140ms ease, transform 140ms ease',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = '#090909'; e.currentTarget.style.color = '#fff'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#090909'; }}
             >
-              ZA FIRME
+              Za firme
             </button>
           </div>
+
+          {/* Metrics */}
+          <div style={{ display: 'flex', gap: 34, flexWrap: 'wrap', marginTop: 52 }}>
+            {[
+              { val: '100+', label: 'Dizajna' },
+              { val: '4.9/5', label: 'Ocena' },
+              { val: '1–3 dana', label: 'Isporuka' },
+            ].map(({ val, label }) => (
+              <div key={label}>
+                <b style={{ display: 'block', fontSize: 18, fontWeight: 900 }}>{val}</b>
+                <small style={{ display: 'block', textTransform: 'uppercase', letterSpacing: '0.12em', fontSize: 9, color: '#6F6F6A', marginTop: 4 }}>
+                  {label}
+                </small>
+              </div>
+            ))}
+          </div>
         </div>
 
-        {/* Hero Collage Box */}
-        <div className="md:col-span-5 relative min-h-[380px] md:h-full bg-[#E7E7E3] p-3 border border-[#D4D4D0] flex items-center justify-center overflow-hidden">
-          <div className="absolute inset-0 m-3 grid grid-cols-2 grid-rows-2 gap-3">
-            <div
-              className="bg-cover bg-center border border-[#D4D4D0] mix-blend-multiply col-span-2 row-span-1 grayscale contrast-125"
-              style={{
-                backgroundImage: `url('https://lh3.googleusercontent.com/aida-public/AB6AXuBRXiR5i1jS_9qvk2wPhG0v0JGGKZ_02t8kIzdWosfYdx5vM2BTWqvttcUoKUwcHfmBOUXQe4rcidvFHskcRfuX4D3FtYa7sFsL3brFDg3MbwcTbIvSh9PGiq9cQmG2QCK045t527AwmQY409-im3yfP7Mrbrhjap0Xh88FmNegBPzZedYDHulqh1qqHKKZjT5zzhZObQa4nft6fEZlx-PYukj2lUfcwnhRVKEZ5H98aHChTzKiq5VB')`
-              }}
-            />
-            <div
-              className="bg-cover bg-center border border-[#D4D4D0] mix-blend-multiply col-span-1 row-span-1 contrast-125"
-              style={{
-                backgroundImage: `url('https://lh3.googleusercontent.com/aida-public/AB6AXuBu24cEzkzk-USBJgtchkuK3N3HMQYnNYb1wIL2P7VgbhEv66-RZuN88eX_aQ0dgoitdIyTQ97SRplvw7nn7CVpoElarfw7PUhDT9FmJ6AylNvDRkDI0_VKUiVqULgYUijRz84OTiNnr1Sb-R4t0BQW3bAUP4Qm7Zw7swKaStqhBWVK2M86If_7Suw44nurRtj_V_Fm3v-YC9folxyn0c29GM3ERubic40Vt_cwosyeV5pEO2HpEJ6H')`
-              }}
-            />
-            <div
-              className="bg-cover bg-center border border-[#D4D4D0] mix-blend-multiply col-span-1 row-span-1 contrast-125"
-              style={{
-                backgroundImage: `url('https://lh3.googleusercontent.com/aida-public/AB6AXuCTuaXvRshXwz3hLkF8UvZxR9virksiqH1sEWWZeXgIO0McN4cSJNhVuCFQfZwZpzeGTy8R3qvKV7U_RO_gEsddK1-Cqr-EtD0qFKybLHocwgQ2AR7e8_81SOmq6O-k8C6aYQ67qgFMIXn2ot5BfhbRXwL2hBNXzqATp9UYakS3kKIQWFzVsXhY6a6nFVcMITX2BKKEX8KQADZ_V-2ddud1HQHJ4MqP_qZoZmAGAYo1EpiIAb_prkmZ')`
-              }}
-            />
-          </div>
-
-          <div className="absolute top-6 right-6 bg-[#151515] text-white font-bold text-xs px-3.5 py-1.5 -rotate-3 shadow-[4px_4px_0_#b30400] border border-white tracking-widest uppercase">
+        {/* Right art panel */}
+        <div className="hero-art-panel">
+          {/* Floating tags */}
+          <div className="hero-tag" style={{ top: '10%', right: '7%', transform: 'rotate(-7deg)' }}>
             NEW DROP
           </div>
-        </div>
-      </section>
+          <div className="hero-tag" style={{ left: '6%', bottom: '13%', transform: 'rotate(8deg)' }}>
+            STAY WILD
+          </div>
+          <div
+            className="hero-tag"
+            style={{
+              right: '13%', bottom: '9%', transform: 'rotate(-3deg)',
+              background: '#E10600', color: '#fff',
+              boxShadow: '7px 7px 0 #fff',
+            }}
+          >
+            #006
+          </div>
 
-      {/* 2. Trust Strip Marquee */}
-      <section className="bg-[#151515] w-full py-3.5 overflow-hidden border-b-2 border-[#D4D4D0]">
-        <div className="animate-marquee whitespace-nowrap">
-          <div className="flex items-center gap-8 px-4 font-mono-tech text-xs text-white uppercase tracking-widest">
-            <span>ORIGINALNI DIZAJNI</span>
-            <span className="text-[#b30400]">/</span>
-            <span>BRZA ISPORUKA (1-2 DANA)</span>
-            <span className="text-[#b30400]">/</span>
-            <span>SIGURNA KUPOVINA</span>
-            <span className="text-[#b30400]">/</span>
-            <span>CUSTOM PRINT ZA FIRME</span>
-            <span className="text-[#b30400]">/</span>
-            <span>BESPLATNA DOSTAVA PREKO 7.000 RSD</span>
-            <span className="text-[#b30400]">/</span>
-            <span>100% ORGANSKI TEŠKI PAMUK</span>
-            <span className="text-[#b30400]">/</span>
-            <span>ORIGINALNI DIZAJNI</span>
-            <span className="text-[#b30400]">/</span>
-            <span>BRZA ISPORUKA (1-2 DANA)</span>
-            <span className="text-[#b30400]">/</span>
-            <span>SIGURNA KUPOVINA</span>
-            <span className="text-[#b30400]">/</span>
-            <span>CUSTOM PRINT ZA FIRME</span>
-            <span className="text-[#b30400]">/</span>
+          {/* Product image center */}
+          <div
+            style={{
+              position: 'absolute', inset: '4%', zIndex: 2,
+              display: 'grid', placeItems: 'center',
+            }}
+          >
+            <img
+              src={PRODUCTS[2]?.images[0] || PRODUCTS[0].images[0]}
+              alt="Hero product"
+              style={{
+                width: '72%', height: '72%',
+                objectFit: 'contain',
+                filter: 'drop-shadow(0 20px 40px rgba(0,0,0,.6))',
+                position: 'relative', zIndex: 2,
+              }}
+            />
           </div>
         </div>
       </section>
 
-      {/* 3. Category Grid */}
-      <section className="px-4 md:px-12 py-12 md:py-20">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:grid-rows-2 auto-rows-fr h-auto md:h-[560px]">
-          
-          {/* Large Sticker Card */}
-          <button
-            onClick={() => setActivePage('shop')}
-            className="md:col-span-7 md:row-span-2 group relative border border-[#D4D4D0] bg-[#E7E7E3] overflow-hidden flex flex-col justify-end p-6 md:p-8 min-h-[280px] text-left cursor-pointer"
-          >
-            <img
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuBkV64Me6SYg4AQuowP7Xl3AOicklIfvz429HGx2NxKsNhpGauFiKCn2UtaAOOROx4pC3FnaYQ3r30EsvPDt3Q7MzyJWi68GNpyV8-M8j25vz-Yn2qFLuVSHTqS-5v43SxydMsEwTczUaNFtGeyDV33YEevtadRUGBiV6QWqd10mGoUtcg7VCfuGdMhzBg7jrLwcoRoIEzhJOjDloU70rf-AGA0wpxXAbsQAm418I-LSGDSzsS9kEiH"
-              alt="Stikeri"
-              className="absolute inset-0 w-full h-full object-cover mix-blend-multiply grayscale contrast-125 opacity-70 group-hover:scale-105 transition-transform duration-500"
-            />
-            <div className="relative z-10 flex justify-between items-end w-full">
-              <div>
-                <span className="font-mono-tech text-xs uppercase text-[#b30400] font-bold block mb-1">
-                  VODOOTPORNI VINIL
-                </span>
-                <h2 className="font-anton text-5xl md:text-7xl text-[#151515] m-0 leading-none">
-                  STIKERI
-                </h2>
+      {/* ══ 2. TRUST STRIP ══════════════════════════════════ */}
+      <section style={{ background: '#000', color: '#fff' }}>
+        <div className="trust-grid">
+          {[
+            { n: '01', title: 'Originalni dizajni', sub: 'STRIKERZ vizuelni potpis' },
+            { n: '02', title: 'Brza kupovina', sub: 'Jasan shop i checkout' },
+            { n: '03', title: 'Streetwear + stickers', sub: 'Jedan prepoznatljiv sistem' },
+            { n: '04', title: 'Custom print', sub: 'Za ekipe i firme' },
+          ].map(({ n, title, sub }) => (
+            <div key={n} className="trust-item">
+              <div
+                style={{
+                  fontFamily: "'Anton', sans-serif",
+                  color: '#E10600', fontSize: 27,
+                  lineHeight: 1, flexShrink: 0,
+                }}
+              >
+                {n}
               </div>
-              <span className="w-12 h-12 bg-[#151515] text-white flex items-center justify-center group-hover:bg-[#b30400] group-hover:translate-x-2 transition-all">
-                <ArrowRight className="w-6 h-6" />
-              </span>
+              <div>
+                <b style={{ display: 'block', fontSize: 10, letterSpacing: '0.11em', textTransform: 'uppercase' }}>
+                  {title}
+                </b>
+                <small style={{ display: 'block', color: '#888', marginTop: 3, fontSize: 10 }}>
+                  {sub}
+                </small>
+              </div>
             </div>
-          </button>
+          ))}
+        </div>
+      </section>
 
-          {/* Majice Card */}
-          <button
-            onClick={() => setActivePage('shop')}
-            className="md:col-span-5 md:row-span-1 group relative border border-[#D4D4D0] bg-[#FFFFFF] overflow-hidden flex flex-col justify-end p-6 min-h-[200px] text-left cursor-pointer"
+      {/* ══ 3. CATEGORIES ════════════════════════════════════ */}
+      <section style={{ padding: '96px 0' }}>
+        <div style={{ width: 'min(1360px, calc(100% - 64px))', marginInline: 'auto' }}>
+          <div className="eyebrow">Kategorije</div>
+          <h2
+            style={{
+              fontFamily: "'Anton', sans-serif", textTransform: 'uppercase',
+              fontSize: 'clamp(44px, 5vw, 72px)', lineHeight: 0.94, marginTop: 14,
+            }}
           >
-            <img
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuDf0svpvxrC5NkTvC8o8eQPX8csv7d-h26jPmJ8gwRXVeYAFJlhG8BPqjclFrnu8o9p1V7q-N7Px9Bi-blWodtFg0vLrwrexIU66ZKWm4ddxm6Gp1AS5QriwgldR1zISAJy-r-MxJAmgbvaaxRuWmFMeH6mPUcOf4HnywkpBTTI7XSZcvrkiZ4di672W3Xkc5eDabFTO5pekuT3u10Wurf21gS8kONHp8noVXe2Grf5ncYNiG4DxXYS"
-              alt="Majice"
-              className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-500"
-            />
-            <div className="relative z-10 flex justify-between items-end w-full">
-              <h3 className="font-anton text-4xl md:text-5xl text-[#151515] m-0 leading-none">
-                MAJICE
-              </h3>
-              <span className="w-10 h-10 bg-[#151515] text-white flex items-center justify-center group-hover:bg-[#b30400] group-hover:translate-x-1.5 transition-all">
-                <ArrowRight className="w-5 h-5" />
-              </span>
-            </div>
-          </button>
+            Izaberi svoj teren.
+          </h2>
+          <p style={{ maxWidth: 680, color: '#4A4A47', marginTop: 18, lineHeight: 1.75 }}>
+            Streetwear i sticker kultura, ali kupovina ostaje jasna. Svaka kategorija ima svoj karakter.
+          </p>
 
-          {/* Duksevi & Za Firme split */}
-          <div className="md:col-span-5 md:row-span-1 grid grid-cols-2 gap-4 min-h-[200px]">
-            <button
+          <div className="category-wall">
+            {/* Big — Stikeri */}
+            <article
+              className="cat-tile big"
+              style={{ background: '#E10600' }}
               onClick={() => setActivePage('shop')}
-              className="group relative border border-[#D4D4D0] bg-[#151515] overflow-hidden flex flex-col justify-end p-4 text-left cursor-pointer"
+            >
+              <img
+                src={PRODUCTS.find(p => p.category === 'stikeri')?.images[0] || PRODUCTS[1].images[0]}
+                alt="Stikeri"
+                className="cat-img"
+                style={{ objectFit: 'cover', mixBlendMode: 'multiply', opacity: 0.6 }}
+              />
+              <div className="cat-info">
+                <h3>Stikeri</h3>
+                <p>Sticker packovi, pojedinačni dizajni i custom nalepnice →</p>
+              </div>
+            </article>
+
+            {/* Majice */}
+            <article
+              className="cat-tile"
+              style={{ background: '#111' }}
+              onClick={() => setActivePage('shop')}
+            >
+              <img
+                src={PRODUCTS.find(p => p.category === 'majice')?.images[0] || PRODUCTS[0].images[0]}
+                alt="Majice"
+                className="cat-img"
+                style={{ objectFit: 'cover', opacity: 0.6 }}
+              />
+              <div className="cat-info">
+                <h3>Majice</h3>
+                <p>Logo tees, drop grafike i clean streetwear komadi →</p>
+              </div>
+            </article>
+
+            {/* Duksevi */}
+            <article
+              className="cat-tile"
+              style={{ background: '#2a2a2a' }}
+              onClick={() => setActivePage('shop')}
+            >
+              <img
+                src={PRODUCTS.find(p => p.category === 'duksevi')?.images[0] || PRODUCTS[2].images[0]}
+                alt="Duksevi"
+                className="cat-img"
+                style={{ objectFit: 'cover', opacity: 0.5 }}
+              />
+              <div className="cat-info">
+                <h3>Duksevi</h3>
+                <p>Heavyweight hoodie komadi i limited dropovi →</p>
+              </div>
+            </article>
+
+            {/* B2B — wide */}
+            <article
+              className="cat-tile wide"
+              style={{ background: '#111' }}
+              onClick={() => setActivePage('b2b')}
             >
               <div
-                className="absolute inset-0 bg-cover bg-center opacity-40 group-hover:scale-105 transition-transform duration-500 grayscale"
                 style={{
-                  backgroundImage: `url('https://lh3.googleusercontent.com/aida-public/AB6AXuCTuaXvRshXwz3hLkF8UvZxR9virksiqH1sEWWZeXgIO0McN4cSJNhVuCFQfZwZpzeGTy8R3qvKV7U_RO_gEsddK1-Cqr-EtD0qFKybLHocwgQ2AR7e8_81SOmq6O-k8C6aYQ67qgFMIXn2ot5BfhbRXwL2hBNXzqATp9UYakS3kKIQWFzVsXhY6a6nFVcMITX2BKKEX8KQADZ_V-2ddud1HQHJ4MqP_qZoZmAGAYo1EpiIAb_prkmZ')`
+                  position: 'absolute', inset: 0, zIndex: 1,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+              >
+                <span
+                  style={{
+                    fontFamily: "'Anton', sans-serif", fontSize: 68,
+                    color: '#fff', border: '7px solid #E10600',
+                    padding: '12px 20px', transform: 'rotate(-7deg)',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  YOUR LOGO
+                </span>
+              </div>
+              <div className="cat-info">
+                <h3>Za firme</h3>
+                <p>Stikeri, tekstil, window graphics i promo materijal →</p>
+              </div>
+            </article>
+
+            {/* Kačketi */}
+            <article
+              className="cat-tile"
+              style={{ background: '#dededb' }}
+              onClick={() => setActivePage('shop')}
+            >
+              <img
+                src={PRODUCTS.find(p => p.category === 'kacketi')?.images[0] || PRODUCTS[3].images[0]}
+                alt="Kačketi"
+                className="cat-img"
+                style={{ objectFit: 'cover', opacity: 0.75, mixBlendMode: 'multiply' }}
+              />
+              <div className="cat-info">
+                <h3>Kačketi</h3>
+                <p>Snapback, cap i embroidered modeli →</p>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      {/* ══ 4. BESTSELLERS ═══════════════════════════════════ */}
+      <section style={{ padding: '96px 0', background: '#fff' }}>
+        <div style={{ width: 'min(1360px, calc(100% - 64px))', marginInline: 'auto' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 30, alignItems: 'flex-end', marginBottom: 36 }}>
+            <div>
+              <div className="eyebrow">Najtraženije</div>
+              <h2
+                style={{
+                  fontFamily: "'Anton', sans-serif", textTransform: 'uppercase',
+                  fontSize: 'clamp(44px, 5vw, 72px)', lineHeight: 0.94, marginTop: 14,
+                }}
+              >
+                Bestselleri.
+              </h2>
+            </div>
+            <button
+              onClick={() => setActivePage('shop')}
+              style={{
+                border: '1px solid #090909', borderRadius: 0, minHeight: 48, padding: '0 24px',
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+                cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.09em',
+                fontSize: 11, fontWeight: 900, background: 'transparent', color: '#090909',
+                whiteSpace: 'nowrap',
+                transition: 'background 140ms ease, color 140ms ease',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = '#090909'; e.currentTarget.style.color = '#fff'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#090909'; }}
+            >
+              Pogledaj sve →
+            </button>
+          </div>
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(4, 1fr)',
+              gap: 18,
+            }}
+            className="bestsellers-grid"
+          >
+            {featured.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ══ 5. PROMO BANNERS ═════════════════════════════════ */}
+      <section style={{ padding: '0 0 96px' }}>
+        <div style={{ width: 'min(1360px, calc(100% - 64px))', marginInline: 'auto' }}>
+          <div className="promo-grid">
+            {[
+              { bg: '#E10600', title: 'New drop', desc: 'Najnoviji STRIKERZ komadi.', cta: 'Pogledaj drop', page: 'shop' as const },
+              { bg: '#000', title: 'Sale', desc: 'Odabrani komadi po sniženim cenama.', cta: 'Uhvati popust', page: 'shop' as const },
+              { bg: '#343434', title: 'Custom print', desc: 'Tvoj logo. Tvoj dizajn. Tvoja ekipa.', cta: 'Pošalji upit', page: 'b2b' as const },
+            ].map(({ bg, title, desc, cta, page }) => (
+              <div
+                key={title}
+                className="promo-tile"
+                style={{ background: bg }}
+                onClick={() => setActivePage(page)}
+              >
+                <h3
+                  style={{
+                    fontFamily: "'Anton', sans-serif", fontSize: 48,
+                    textTransform: 'uppercase', lineHeight: 0.94,
+                    position: 'relative', margin: 0,
+                  }}
+                >
+                  {title}
+                </h3>
+                <p style={{ fontSize: 12, color: '#ddd', marginTop: 9, position: 'relative' }}>
+                  {desc}
+                </p>
+                <span
+                  style={{
+                    position: 'relative', marginTop: 18, width: 'max-content',
+                    borderBottom: '2px solid currentColor',
+                    fontSize: 9, fontWeight: 900, letterSpacing: '0.11em', textTransform: 'uppercase',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {cta}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ══ 6. DROP FEATURE ══════════════════════════════════ */}
+      <section style={{ padding: '0 0 96px' }}>
+        <div style={{ width: 'min(1360px, calc(100% - 64px))', marginInline: 'auto' }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1.1fr 0.9fr',
+              background: '#fff',
+              border: '1px solid #D4D4D0',
+            }}
+            className="drop-feature-grid"
+          >
+            {/* Art */}
+            <div className="drop-art-panel">
+              <img
+                src={PRODUCTS[2]?.images[0] || PRODUCTS[0].images[0]}
+                alt="Drop product"
+                style={{
+                  width: '60%', height: '70%',
+                  objectFit: 'contain',
+                  position: 'relative', zIndex: 2,
+                  filter: 'drop-shadow(0 10px 30px rgba(0,0,0,.5))',
                 }}
               />
-              <div className="relative z-10 flex justify-between items-end w-full">
-                <h3 className="font-anton text-2xl md:text-3xl text-white m-0 leading-none">
-                  DUKSEVI
-                </h3>
-              </div>
-            </button>
+            </div>
 
-            <button
-              onClick={() => setActivePage('b2b')}
-              className="group relative border border-[#b30400] bg-[#b30400] overflow-hidden flex flex-col justify-end p-4 text-left cursor-pointer"
+            {/* Copy */}
+            <div
+              style={{
+                padding: 'clamp(40px, 5vw, 68px)',
+                display: 'flex', flexDirection: 'column', justifyContent: 'center',
+              }}
             >
-              <div className="relative z-10 flex justify-between items-end w-full">
-                <h3 className="font-anton text-2xl md:text-3xl text-white m-0 leading-none">
-                  ZA FIRME
-                </h3>
-                <span className="text-white group-hover:translate-x-1.5 transition-transform">
-                  <ArrowRight className="w-6 h-6" />
-                </span>
+              <div
+                style={{
+                  fontFamily: 'ui-monospace, monospace', fontSize: 10,
+                  letterSpacing: '0.12em', textTransform: 'uppercase',
+                  color: '#6F6F6A', marginBottom: 12,
+                }}
+              >
+                DROP / LIMITED / AUG 2026
               </div>
-            </button>
+              <div className="eyebrow">Editorial product feature</div>
+              <h3
+                style={{
+                  fontFamily: "'Anton', sans-serif", fontSize: 'clamp(42px, 5vw, 62px)',
+                  lineHeight: 0.95, textTransform: 'uppercase', margin: '14px 0 0',
+                }}
+              >
+                {PRODUCTS[2]?.name || 'CORE HOODIE WHT'}.
+              </h3>
+              <p style={{ color: '#4A4A47', margin: '18px 0 26px', maxWidth: 500, lineHeight: 1.75 }}>
+                {PRODUCTS[2]?.description?.slice(0, 120) || 'Heavyweight hoodie komad za ljude koji ne kompromituju.'}&hellip;
+              </p>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <button
+                  onClick={() => viewProduct(PRODUCTS[2] || PRODUCTS[0])}
+                  style={{
+                    border: 0, borderRadius: 0, minHeight: 48, padding: '0 24px',
+                    display: 'inline-flex', alignItems: 'center', gap: 8,
+                    cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.09em',
+                    fontSize: 11, fontWeight: 900, background: '#E10600', color: '#fff',
+                    transition: 'background 140ms ease',
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = '#090909')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = '#E10600')}
+                >
+                  Pogledaj proizvod
+                </button>
+                <button
+                  onClick={() => setActivePage('shop')}
+                  style={{
+                    border: '1px solid #090909', borderRadius: 0, minHeight: 48, padding: '0 24px',
+                    display: 'inline-flex', alignItems: 'center', gap: 8,
+                    cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.09em',
+                    fontSize: 11, fontWeight: 900, background: 'transparent', color: '#090909',
+                    transition: 'background 140ms ease, color 140ms ease',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = '#090909'; e.currentTarget.style.color = '#fff'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#090909'; }}
+                >
+                  Svi duksevi
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* 4. Best Sellers Section */}
-      <section className="px-4 md:px-12 pb-16 md:pb-24">
-        <div className="flex justify-between items-end mb-8 border-b-2 border-[#151515] pb-4">
-          <div>
-            <span className="font-mono-tech text-xs text-[#b30400] font-bold uppercase tracking-widest block mb-1">
-              IZDVAJAMO IZ PONUDE
-            </span>
-            <h2 className="font-anton text-4xl sm:text-5xl md:text-6xl uppercase leading-none tracking-tighter text-[#151515]">
-              NAJPRODAVANIJE
-            </h2>
-          </div>
-          <button
-            onClick={() => setActivePage('shop')}
-            className="font-bold text-xs text-[#151515] hover:text-[#b30400] transition-colors flex items-center gap-1 uppercase cursor-pointer"
+      {/* ══ 7. B2B SPLIT ═════════════════════════════════════ */}
+      <section
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          background: '#000',
+          color: '#fff',
+        }}
+        className="b2b-split-grid"
+      >
+        {/* Copy */}
+        <div
+          style={{
+            padding: 'clamp(60px, 8vh, 82px) clamp(32px, 4vw, 64px)',
+          }}
+        >
+          <div className="eyebrow" style={{ color: '#E10600' }}>Za firme / B2B</div>
+          <h2
+            style={{
+              fontFamily: "'Anton', sans-serif", textTransform: 'uppercase',
+              fontSize: 'clamp(54px, 6vw, 92px)', lineHeight: 0.9,
+              marginTop: 15,
+            }}
           >
-            <span>Svi proizvodi</span>
-            <ArrowRight className="w-4 h-4" />
+            Brending koji se{' '}
+            <span style={{ color: '#E10600' }}>vidi.</span>
+          </h2>
+          <p style={{ color: '#aaa', maxWidth: 560, lineHeight: 1.75, margin: '24px 0 30px' }}>
+            Custom stikeri, tekstil, QR nalepnice, izlozi i promo materijal. STRIKERZ B2B stranica je zaseban prodajni kanal, ne samo mali link u footeru.
+          </p>
+          <button
+            onClick={() => setActivePage('b2b')}
+            style={{
+              border: 0, borderRadius: 0, minHeight: 48, padding: '0 24px',
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.09em',
+              fontSize: 11, fontWeight: 900, background: '#E10600', color: '#fff',
+              transition: 'background 140ms ease',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = '#fff', e.currentTarget.style.color = '#000')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = '#E10600', e.currentTarget.style.color = '#fff')}
+          >
+            Zatraži ponudu →
           </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {bestSellers.map((product) => (
-            <div
-              key={product.id}
-              className="group relative flex flex-col border border-[#D4D4D0] bg-white hover:border-[#151515] transition-colors"
-            >
-              {/* Image box */}
-              <div
-                onClick={() => viewProduct(product)}
-                className="relative aspect-[4/5] bg-[#E7E7E3] overflow-hidden border-b border-[#D4D4D0] flex items-center justify-center cursor-pointer"
-              >
-                {product.badge && product.badge !== 'NOVO' && (
-                  <span
-                    className={`absolute top-3 left-3 text-white font-mono-tech text-[10px] px-2 py-1 tracking-wider uppercase font-bold z-10 ${
-                      product.badge.includes('%') || product.badge === 'SALE'
-                        ? 'bg-[#b30400]'
-                        : 'bg-[#151515]'
-                    }`}
-                  >
-                    {product.badge === 'SALE' && product.originalPrice
-                      ? `-${Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}%`
-                      : product.badge}
-                  </span>
-                )}
-
-                <img
-                  src={product.images[0]}
-                  alt={product.name}
-                  className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
-                />
-
-                {/* Quick Add on Hover */}
-                <div className="absolute bottom-0 left-0 w-full p-3 translate-y-full group-hover:translate-y-0 transition-transform duration-200">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      addToCart(product, 1, product.sizes?.[0] || 'M');
-                    }}
-                    className="w-full bg-[#b30400] text-white font-bold text-xs py-3 hover:bg-[#151515] uppercase transition-colors tracking-wider cursor-pointer shadow-sm"
-                  >
-                    DODAJ U KORPU
-                  </button>
-                </div>
-              </div>
-
-              {/* Card info */}
-              <div className="p-4 flex flex-col gap-1 flex-grow">
-                <div className="flex justify-between items-start">
-                  <span className="font-mono-tech text-[#6F6F6A] text-xs">{product.sku}</span>
-                  <div className="flex items-baseline gap-1.5">
-                    {product.originalPrice && (
-                      <span className="font-mono-tech text-xs text-[#6F6F6A] line-through">
-                        {product.originalPrice.toLocaleString('sr-RS')}
-                      </span>
-                    )}
-                    <span className="font-bold text-xs text-[#151515]">
-                      {product.price.toLocaleString('sr-RS')} RSD
-                    </span>
-                  </div>
-                </div>
-                <h3
-                  onClick={() => viewProduct(product)}
-                  className="font-bold text-sm text-[#151515] uppercase truncate hover:text-[#b30400] transition-colors cursor-pointer"
-                >
-                  {product.name}
-                </h3>
-              </div>
-            </div>
-          ))}
+        {/* Art */}
+        <div
+          style={{
+            background: '#E10600',
+            minHeight: 480,
+            display: 'grid',
+            placeItems: 'center',
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+        >
+          <div
+            style={{
+              position: 'absolute',
+              fontFamily: "'Anton', sans-serif", fontSize: 160,
+              color: 'rgba(255,255,255,.1)', transform: 'rotate(-13deg)',
+              whiteSpace: 'nowrap', pointerEvents: 'none',
+            }}
+          >
+            ZA FIRME
+          </div>
+          <img
+            src={PRODUCTS[0].images[0]}
+            alt="B2B"
+            style={{
+              width: '65%', height: '65%',
+              objectFit: 'contain',
+              position: 'relative', zIndex: 2,
+              filter: 'drop-shadow(0 10px 30px rgba(0,0,0,.3))',
+            }}
+          />
         </div>
       </section>
 
-      {/* 5. Promo 3-Column Banners */}
-      <section className="grid grid-cols-1 md:grid-cols-3 w-full border-t border-b-2 border-[#D4D4D0]">
-        <div
-          onClick={() => setActivePage('shop')}
-          className="bg-[#b30400] text-white p-8 md:p-12 flex flex-col justify-center items-center text-center border-b md:border-b-0 md:border-r border-[#D4D4D0]/30 hover:bg-[#151515] transition-colors duration-300 cursor-pointer"
-        >
-          <h3 className="font-anton text-4xl md:text-5xl uppercase leading-none mb-3">
-            NEW DROP
-          </h3>
-          <p className="font-bold uppercase text-xs tracking-widest border-b border-white pb-1">
-            POGLEDAJ KOLEKCIJU
-          </p>
-        </div>
-
-        <div
-          onClick={() => setActivePage('shop')}
-          className="bg-[#151515] text-white p-8 md:p-12 flex flex-col justify-center items-center text-center border-b md:border-b-0 md:border-r border-[#D4D4D0]/30 hover:bg-[#b30400] transition-colors duration-300 cursor-pointer"
-        >
-          <h3 className="font-anton text-4xl md:text-5xl uppercase leading-none mb-3">
-            SALE
-          </h3>
-          <p className="font-bold uppercase text-xs tracking-widest border-b border-white pb-1">
-            DO -50% POPUSTA
-          </p>
-        </div>
-
-        <div
-          onClick={() => setActivePage('b2b')}
-          className="bg-[#151515] text-white p-8 md:p-12 flex flex-col justify-center items-center text-center hover:bg-[#b30400] transition-colors duration-300 cursor-pointer"
-        >
-          <h3 className="font-anton text-4xl md:text-5xl uppercase leading-none mb-3">
-            CUSTOM PRINT
-          </h3>
-          <p className="font-bold uppercase text-xs tracking-widest border-b border-white pb-1">
-            ZA TVOJ BIZNIS / B2B
-          </p>
-        </div>
-      </section>
-
-      {/* 6. Community / Instagram Grid */}
-      <section className="bg-[#151515] py-16 md:py-20 border-b border-[#D4D4D0]">
-        <div className="px-4 md:px-12 mb-8 text-center">
-          <span className="font-mono-tech text-xs text-[#b30400] uppercase font-bold tracking-widest block mb-2">
-            STREETWEAR & PRINT COMMUNITY
-          </span>
-          <h2 className="font-anton text-4xl md:text-6xl uppercase leading-none text-white tracking-tighter">
-            @STRIKERZ_CULTURE
+      {/* ══ 8. REVIEWS ═══════════════════════════════════════ */}
+      <section style={{ padding: '96px 0' }}>
+        <div style={{ width: 'min(1360px, calc(100% - 64px))', marginInline: 'auto' }}>
+          <div className="eyebrow">Recenzije / trust</div>
+          <h2
+            style={{
+              fontFamily: "'Anton', sans-serif", textTransform: 'uppercase',
+              fontSize: 'clamp(44px, 5vw, 72px)', lineHeight: 0.94, marginTop: 14,
+            }}
+          >
+            Kažu da ostavljamo trag.
           </h2>
-        </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-0 border-y border-white/20 max-w-7xl mx-auto">
-          {[
-            'https://lh3.googleusercontent.com/aida-public/AB6AXuAdf4g-J6C8RH6TWCXf7RrlydB6XrPlqfv5drgASEl6ugbfv3eM3VIomO8rnGafhqBt2GFvtpZ1fAxnb9wYPDN8a-uzbOziOj_wGhLuYu4yPA3stIKOrTzcxg5g8Tmk2FEV4TBVLzGyUR2iFO-aafQyclMAscWtgM3ZoKJ4i6ACbocx1lPLNZyH9lRovLC1KJjaNUBewxCSNBC5pImzXPrtO4-CQkqnYUAzXc5m90g_8gm7vk154SOk',
-            'https://lh3.googleusercontent.com/aida-public/AB6AXuASYlF53HvlzLZI4ffcarfF-nIlGGJVpdd-HYUE97ujEC322g1nX4jI4yhehPVUhCKcVOc4oZZWg_eOncXalG9c-Tc75-upPMLQ1Wbz5zGtmeD6Po4WJP0FUIxAr_ME3j74yddDDj2BGz3BiQ-ykV1oGec2U3sK4oxNwHdB_oTBRaIBZfXRzNcv0yS8OxLjbUIe-hX0Fc0ir59zzql1PWMx2VNzD72IK6slaKewUnhX5kfSTcHuBc8t',
-            'https://lh3.googleusercontent.com/aida-public/AB6AXuC7LcDYRSlh7-4SO5XqZKvx6ezl6InFOyiv_WycbRC49lqMx8sFXfqjgm4hSLWahhNqipqTpiSWgWvddxEj6taKlfKnGoX8siUNqoq3g9X891o-MxXRLV6pXkeUnIGMtTr1Zo1923dPdb6CsRlK34FIYaF2s15rCaMc8GtPerUGH4OrP0_LdUuHu-O1Nkhujv27HYy9m-KZmIcohR6oh8ibDU1TNj6fXCRubB6cTwO6IUJEzV9I2BHC',
-            'https://lh3.googleusercontent.com/aida-public/AB6AXuDEbQGsOJQXbQl9nxxsGrESt-ZquIiITmHXrG2VR7s3zz15Ve2roTAo_t8Fd5KcEg21-w8MLTL87IfsAVIFB6FAWg__2JA_16uGnNRAgGev6h6t36FQz5dzmKVIEV7pgOMt8EwyG0dtofZ-InXzYxn3pJm4Eks5lhPnD13bxEOD55tZXUf1ssl6kfE6wnf2h0I7Pj1DWTOdqAMNtTp0N0uMYNnr9hN7KBXkqxtACCAPn58VbIy3_2sx'
-          ].map((img, i) => (
-            <div key={i} className="group relative aspect-square overflow-hidden block">
-              <img
-                src={img}
-                alt={`Community ${i + 1}`}
-                className="w-full h-full object-cover grayscale opacity-80 group-hover:scale-110 group-hover:opacity-100 transition-all duration-500"
-              />
-              <div className="absolute inset-0 bg-[#b30400]/0 group-hover:bg-[#b30400]/25 transition-colors duration-300 flex items-center justify-center">
-                <span className="text-white font-mono-tech text-xs opacity-0 group-hover:opacity-100 font-bold tracking-widest uppercase bg-[#151515] px-3 py-1.5">
-                  #STRIKERZ
+          <div
+            style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginTop: 30 }}
+            className="review-grid-resp"
+          >
+            {[
+              { text: 'Sticker pack izgleda jako i uživo, ne samo na ekranu. Print je čist, a pakovanje ima karakter.', author: '— Kupac 01' },
+              { text: 'Hoodie deo sajta mi je dao dovoljno informacija da odmah izaberem veličinu i dodam u korpu.', author: '— Kupac 02' },
+              { text: 'B2B deo izgleda kao ozbiljna ponuda, a ne kao generična kontakt forma zakačena na kraj shopa.', author: '— Firma klijent' },
+            ].map(({ text, author }) => (
+              <div key={author} className="review-card">
+                <div className="quote-mark">"</div>
+                <p style={{ color: '#4A4A47', margin: '18px 0', lineHeight: 1.75 }}>{text}</p>
+                <b style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{author}</b>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ══ 9. COMMUNITY GALLERY ═════════════════════════════ */}
+      <section style={{ padding: '96px 0', background: '#090909', color: '#fff' }}>
+        <div style={{ width: 'min(1360px, calc(100% - 64px))', marginInline: 'auto' }}>
+          <div className="eyebrow" style={{ color: '#E10600' }}>Community / gallery</div>
+          <h2
+            style={{
+              fontFamily: "'Anton', sans-serif", textTransform: 'uppercase',
+              fontSize: 'clamp(44px, 5vw, 72px)', lineHeight: 0.94, marginTop: 14,
+            }}
+          >
+            #STRIKERZ
+          </h2>
+          <p style={{ maxWidth: 680, color: '#aaa', marginTop: 18, lineHeight: 1.75 }}>
+            Ovde dolaze realne slike: sticker wall, print radionica, customer builds, pakovanje, streetwear i B2B radovi.
+          </p>
+
+          <div className="gallery-grid">
+            {[
+              { bg: '#111', label: 'Stick' },
+              { bg: '#E10600', label: 'Drop' },
+              { bg: '#d8d8d4', label: 'Print', dark: true },
+              { bg: '#1a1a1a', label: 'Wild' },
+              { bg: '#E10600', label: 'Raw' },
+              { bg: '#222', label: '006' },
+            ].map(({ bg, label, dark }) => (
+              <div
+                key={label}
+                className="gallery-item"
+                style={{ background: bg, cursor: 'pointer' }}
+              >
+                <span
+                  style={{
+                    fontFamily: "'Anton', sans-serif",
+                    textTransform: 'uppercase', fontSize: 28,
+                    color: dark ? '#000' : '#fff',
+                    transform: 'rotate(-10deg)',
+                    opacity: 0.8,
+                  }}
+                >
+                  {label}
                 </span>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* 7. Newsletter Section */}
-      <section className="bg-[#b30400] w-full px-4 md:px-12 py-16 md:py-24 border-b border-[#151515]">
-        <div className="max-w-4xl mx-auto flex flex-col items-center text-center gap-8">
-          <h2 className="font-anton text-5xl sm:text-6xl md:text-8xl lg:text-9xl uppercase leading-[0.9] tracking-tighter text-white">
-            DROPOVI, AKCIJE I NOVI DIZAJNI.
-          </h2>
-          
-          <p className="font-mono-tech text-xs md:text-sm text-white/90 uppercase tracking-widest max-w-lg">
-            Budi prvi koji saznaje za limitirane serije majica i nove pakete stikera.
-          </p>
+      {/* ══ 10. NEWSLETTER ════════════════════════════════════ */}
+      <section style={{ background: '#E10600', color: '#fff', padding: '58px 0' }}>
+        <div
+          style={{
+            width: 'min(1360px, calc(100% - 64px))', marginInline: 'auto',
+            display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 40, alignItems: 'center',
+          }}
+          className="newsletter-grid"
+        >
+          <div>
+            <div className="eyebrow" style={{ color: '#fff' }}>Newsletter</div>
+            <h2
+              style={{
+                fontFamily: "'Anton', sans-serif", textTransform: 'uppercase',
+                fontSize: 50, lineHeight: 0.95, marginTop: 14,
+              }}
+            >
+              Dropovi, akcije i novi dizajni.
+            </h2>
+          </div>
 
           {isSubscribed ? (
-            <div className="bg-white border-2 border-[#151515] p-6 text-[#151515] brutalist-shadow max-w-lg w-full flex items-center gap-3">
-              <CheckCircle2 className="w-8 h-8 text-[#1EA85B] shrink-0" />
-              <div className="text-left">
-                <p className="font-anton text-xl uppercase leading-tight">HVALA NA PRIJAVI!</p>
-                <p className="font-mono-tech text-xs text-[#6F6F6A] mt-0.5">
-                  Tvoj kod za 10% popusta: <strong>STRIKERZ10</strong>
+            <div
+              style={{
+                background: '#fff', border: '2px solid #090909',
+                padding: 24, display: 'flex', alignItems: 'center', gap: 12,
+              }}
+            >
+              <CheckCircle2 style={{ width: 32, height: 32, color: '#1EA85B', flexShrink: 0 }} />
+              <div>
+                <p style={{ fontFamily: "'Anton', sans-serif", fontSize: 20, textTransform: 'uppercase', color: '#090909', margin: 0 }}>
+                  Hvala na prijavi!
+                </p>
+                <p style={{ fontSize: 10, color: '#6F6F6A', margin: '4px 0 0', fontFamily: 'monospace' }}>
+                  Kod za 10% popusta: <strong>STRIKERZ10</strong>
                 </p>
               </div>
             </div>
           ) : (
             <form
               onSubmit={handleNewsletterSubmit}
-              className="w-full max-w-lg flex flex-col sm:flex-row gap-0 border-2 border-[#151515] bg-white brutalist-shadow"
+              style={{ display: 'flex' }}
             >
               <input
                 type="email"
                 value={newsletterEmail}
                 onChange={(e) => setNewsletterEmail(e.target.value)}
-                placeholder="UNESI SVOJ EMAIL"
+                placeholder="Tvoj email"
                 required
-                className="flex-grow bg-transparent border-none text-[#151515] font-mono-tech font-bold px-6 py-4 outline-none placeholder:text-[#6F6F6A] focus:ring-0 text-sm h-[56px]"
+                style={{
+                  flex: 1, minWidth: 0, border: 0,
+                  padding: 15, fontSize: 14, outline: 'none',
+                  fontFamily: 'inherit',
+                }}
               />
               <button
                 type="submit"
-                className="bg-[#151515] text-white font-bold text-xs uppercase px-8 py-4 hover:bg-[#b30400] transition-colors h-[56px] w-full sm:w-auto border-t-2 sm:border-t-0 sm:border-l-2 border-[#151515] flex items-center justify-center whitespace-nowrap cursor-pointer"
+                style={{
+                  border: 0, background: '#000', color: '#fff',
+                  padding: '0 24px', fontSize: 9, textTransform: 'uppercase',
+                  fontWeight: 900, cursor: 'pointer', letterSpacing: '0.09em',
+                  transition: 'background 140ms ease',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = '#090909')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = '#000')}
               >
-                PRIJAVI SE
+                Prijavi se
               </button>
             </form>
           )}
         </div>
       </section>
+
     </div>
   );
 };
